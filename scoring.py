@@ -14,7 +14,7 @@ class Scorings:
 
     @classmethod
     def from_csv(cls, rows, answers: Answers):
-        cls([Scoring.from_csv(row, answers) for row in rows])
+        return cls([Scoring.from_csv(row, answers) for row in rows])
 
     def __iter__(self):
         return iter(self.rows)
@@ -57,7 +57,7 @@ def read_scorings(answers) -> dict[str, Scorings]:
             # Skip the header row
             next(rd)
 
-            scorings = Scorings(rd, answers)
+            scorings = Scorings.from_csv(rd, answers)
             result[file_path.stem] = scorings
             debug(f'Read {len(scorings.rows)} scorings from {file_path}')
 
