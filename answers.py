@@ -36,6 +36,17 @@ class Answer:
         self.idea4 = row[22] or row[56]
         self.idea5 = row[23] or row[57]
 
+        try:
+            self.original = int(row[42] or row[75])
+            self.plausible = int(row[43] or row[76])
+            self.effective = int(row[44] or row[77])
+        except ValueError:
+            self.original = 0
+            self.plausible = 0
+            self.effective = 0
+
+        self.used_ai = row[-1] == 'AI'
+
 
 def read_answers() -> Answers:
     with open(F_ANSWERS, 'r', encoding='utf-8') as f:

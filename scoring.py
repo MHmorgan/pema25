@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import csv
 
-from answers import Answers
+from answers import Answers, Answer
 from utils import debug
 
 D_SCORING = Path('data/scoring/')
@@ -12,17 +12,27 @@ D_SCORING = Path('data/scoring/')
 class Scorings:
     rows: list['Scoring']
 
-    @classmethod
-    def from_csv(cls, rows, answers: Answers):
-        return cls([Scoring.from_csv(row, answers) for row in rows])
+    def __init__(self, rows):
+        self.rows = sorted(rows, key=lambda row: row.number)
 
     def __iter__(self):
         return iter(self.rows)
 
+    @classmethod
+    def from_csv(cls, rows, answers: Answers):
+        return cls([Scoring.from_csv(row, answers) for row in rows])
+
+    def with_ai(self):
+        return Scorings([s for s in self.rows if s.answer.used_ai])
+
+    def without_ai(self):
+        return Scorings([s for s in self.rows if not s.answer.used_ai])
+
 
 @dataclass
 class Scoring:
-    id: str
+    answer: Answer
+    number: int
     original: int
     plausible: int
     effective: int
@@ -39,12 +49,12 @@ class Scoring:
 
         for ans in answers:
             if ans.idea1 == idea1:
-                id = ans.id
+                answer = ans
                 break
         else:
             raise ValueError(f'Idea {number} not found in answers :: {idea1}')
 
-        return cls(id, original, plausible, effective)
+        return cls(answer, number, original, plausible, effective)
 
 
 def read_scorings(answers) -> dict[str, Scorings]:
