@@ -15,6 +15,9 @@ class Answers:
     def __iter__(self):
         return iter(self.rows)
 
+    def __len__(self):
+        return len(self.rows)
+
 
 class Answer:
     def __init__(self, row):
@@ -37,9 +40,9 @@ class Answer:
         self.idea5 = row[23] or row[57]
 
         try:
-            self.original = int(row[42] or row[75])
-            self.plausible = int(row[43] or row[76])
-            self.effective = int(row[44] or row[77])
+            self.original = int(row[41] or row[75])
+            self.plausible = int(row[42] or row[76])
+            self.effective = int(row[43] or row[77])
         except ValueError:
             self.original = 0
             self.plausible = 0
