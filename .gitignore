@@ -2,6 +2,8 @@ data/
 .idea/
 .DS_Store
 
+*.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

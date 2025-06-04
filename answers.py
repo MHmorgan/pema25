@@ -1,8 +1,10 @@
+from collections.abc import Iterable
 from pathlib import Path
 import csv
 
 import arrow
 
+from extra import CategoryEntry, Categories
 from utils import *
 
 F_ANSWERS = Path('data/alle-svar.csv')
@@ -10,13 +12,13 @@ F_ANSWERS = Path('data/alle-svar.csv')
 
 class Answers:
     def __init__(self, rows):
-        self.rows = [Answer(row) for row in rows]
+        self.answers = [Answer(row) for row in rows]
 
     def __iter__(self):
-        return iter(self.rows)
+        return iter(self.answers)
 
     def __len__(self):
-        return len(self.rows)
+        return len(self.answers)
 
 
 class Answer:
@@ -51,6 +53,30 @@ class Answer:
         self.used_ai = row[-1] == 'AI'
 
 
+class AnswerNumbered(Answer):
+    def __init__(self, row, number):
+        super().__init__(row)
+        self.number = number
+
+
+class AnswerCategorized(Answer):
+    def __init__(self, row, cat: CategoryEntry):
+        super().__init__(row)
+        self.number = cat.number
+        self.category = cat.category
+        self.ideas = cat.ideas
+
+
+def categorize(
+        answers: Iterable[Answer],
+        categories: Categories,
+) -> list[AnswerCategorized]:
+    return [
+        AnswerCategorized(ans.row, categories[ans.id])
+        for ans in answers
+    ]
+
+
 def read_answers() -> Answers:
     with open(F_ANSWERS, 'r', encoding='utf-8') as f:
         rd = csv.reader(f, delimiter=';')
@@ -60,5 +86,5 @@ def read_answers() -> Answers:
         next(rd)
 
         res = Answers(rd)
-        debug(f'Read {len(res.rows)} answers from {F_ANSWERS}')
+        debug(f'Read {len(res.answers)} answers from {F_ANSWERS}')
         return res

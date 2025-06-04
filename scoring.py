@@ -3,41 +3,42 @@ from pathlib import Path
 import csv
 import statistics
 
-from IPython.utils.timing import clocks
-
-from answers import Answers, Answer
+from answers import Answers, Answer, AnswerNumbered
 from utils import debug
 
 D_SCORING = Path('data/scoring/')
 
 
 @dataclass
-class Scorings(list):
+class Scoring(list):
     def __init__(self, rows):
         super().__init__(sorted(rows, key=lambda row: row.number))
 
     @classmethod
     def from_csv(cls, rows, answers: Answers):
-        return cls([Scoring.from_csv(row, answers) for row in rows])
+        return cls(ScoringEntry.from_csv(row, answers) for row in rows)
 
     @classmethod
-    def from_median(cls, lst: list['Scorings']):
+    def from_median(cls, lst: list['Scoring']):
         scorings = [
-            Scoring.from_median(zipped)
+            ScoringEntry.from_median(zipped)
             for zipped in zip(*lst)
         ]
         return cls(scorings)
 
-    def with_ai(self):
-        return Scorings([s for s in self if s.answer.used_ai])
+    def with_ai(self) -> 'Scoring':
+        return Scoring(s for s in self if s.answer.used_ai)
 
-    def without_ai(self):
-        return Scorings([s for s in self if not s.answer.used_ai])
+    def without_ai(self) -> 'Scoring':
+        return Scoring(s for s in self if not s.answer.used_ai)
+
+    def answers(self) -> list[AnswerNumbered]:
+        return [s.answer for s in self]
 
 
 @dataclass
-class Scoring:
-    answer: Answer
+class ScoringEntry:
+    answer: AnswerNumbered
     number: int
     original: int
     plausible: int
@@ -55,7 +56,7 @@ class Scoring:
 
         for ans in answers:
             if ans.idea1 == idea1:
-                answer = ans
+                answer = AnswerNumbered(ans.row, number)
                 break
         else:
             raise ValueError(f'Idea {number} not found in answers :: {idea1}')
@@ -63,21 +64,21 @@ class Scoring:
         return cls(answer, number, original, plausible, effective)
 
     @classmethod
-    def from_median(cls, scorings: tuple['Scoring']):
-        answer = scorings[0].answer
-        number = scorings[0].number
-        for s in scorings[1:]:
-            assert s.answer == answer
+    def from_median(cls, scoring: tuple['ScoringEntry']):
+        answer = scoring[0].answer
+        number = scoring[0].number
+        for s in scoring[1:]:
+            assert s.answer.id == answer.id
             assert s.number == number
 
-        original = statistics.median_high([s.original for s in scorings])
-        plausible = statistics.median_high([s.plausible for s in scorings])
-        effective = statistics.median_high([s.effective for s in scorings])
+        original = statistics.median_high([s.original for s in scoring])
+        plausible = statistics.median_high([s.plausible for s in scoring])
+        effective = statistics.median_high([s.effective for s in scoring])
 
         return cls(answer, number, original, plausible, effective)
 
     @classmethod
-    def from_answer(cls, answer: Answer, number: int):
+    def from_answer(cls, answer: AnswerNumbered, number: int):
         return cls(
             answer=answer,
             number=number,
@@ -94,7 +95,7 @@ class Scoring:
         return self.original * wo + self.plausible * wp + self.effective * we
 
 
-def read_scorings(answers) -> dict[str, Scorings]:
+def read_scorings(answers) -> dict[str, Scoring]:
     result = {}
 
     for file_path in D_SCORING.glob('*.csv'):
@@ -104,7 +105,7 @@ def read_scorings(answers) -> dict[str, Scorings]:
             # Skip the header row
             next(rd)
 
-            scorings = Scorings.from_csv(rd, answers)
+            scorings = Scoring.from_csv(rd, answers)
             result[file_path.stem] = scorings
             debug(f'Read {len(scorings)} scorings from {file_path}')
 
