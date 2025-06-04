@@ -105,10 +105,8 @@ def bar_plot(
     x = list(range(len(values_with_ai)))
 
     # Create bars
-    plt.bar([i - bar_width / 2 for i in x], values_with_ai,
-            width=bar_width, label='With AI', color='skyblue')
-    plt.bar([i + bar_width / 2 for i in x], values_without,
-            width=bar_width, label='Without AI', color='lightcoral')
+    plt.bar([i - bar_width / 2 for i in x], values_with_ai, width=bar_width, label='With AI')
+    plt.bar([i + bar_width / 2 for i in x], values_without, width=bar_width, label='Without AI')
 
     # Add labels, title and legend
     plt.xlabel(xlabel)
@@ -116,5 +114,34 @@ def bar_plot(
     plt.title(title)
     plt.xticks(x, xticklabels, rotation=rotation)
     plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def line_plot(
+        line_values,
+        line_labels,
+        title,
+        ylabel,
+        xlabel,
+        xticklabels,
+        rotation=90,
+        figsize=(12, 8),
+        marker_size=8
+):
+    plt.figure(figsize=figsize)
+
+    # Create lines
+    for (line, label) in zip(line_values, line_labels):
+        x = list(range(len(line)))
+        plt.plot(x, line, 'o-', label=label, markersize=marker_size)
+
+    # Add labels, title and legend
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xticks(x, xticklabels, rotation=rotation)
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.show()

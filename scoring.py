@@ -1,9 +1,10 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 import csv
 import statistics
 
-from answers import Answers, Answer, AnswerNumbered
+from answers import Answers, Answer, AnswerNumbered, AnswerCategorized
 from utils import debug
 
 D_SCORING = Path('data/scoring/')
@@ -11,7 +12,7 @@ D_SCORING = Path('data/scoring/')
 
 @dataclass
 class Scoring(list):
-    def __init__(self, rows):
+    def __init__(self, rows: Iterable['ScoringEntry']):
         super().__init__(sorted(rows, key=lambda row: row.number))
 
     @classmethod
@@ -20,11 +21,17 @@ class Scoring(list):
 
     @classmethod
     def from_median(cls, lst: list['Scoring']):
-        scorings = [
+        scoring = [
             ScoringEntry.from_median(zipped)
             for zipped in zip(*lst)
         ]
-        return cls(scorings)
+        return cls(scoring)
+
+    def find(self, number) -> 'ScoringEntry':
+        for score in self:
+            if score.number == number:
+                return score
+        raise KeyError(number)
 
     def with_ai(self) -> 'Scoring':
         return Scoring(s for s in self if s.answer.used_ai)
@@ -34,6 +41,18 @@ class Scoring(list):
 
     def answers(self) -> list[AnswerNumbered]:
         return [s.answer for s in self]
+
+    def original_mean(self, answers: Iterable[AnswerCategorized]):
+        nums = [self.find(ans.number).original for ans in answers]
+        return statistics.mean(nums)
+
+    def plausible_mean(self, answers: Iterable[AnswerCategorized]):
+        nums = [self.find(ans.number).plausible for ans in answers]
+        return statistics.mean(nums)
+
+    def effective_mean(self, answers: Iterable[AnswerCategorized]):
+        nums = [self.find(ans.number).effective for ans in answers]
+        return statistics.mean(nums)
 
 
 @dataclass
@@ -105,8 +124,8 @@ def read_scorings(answers) -> dict[str, Scoring]:
             # Skip the header row
             next(rd)
 
-            scorings = Scoring.from_csv(rd, answers)
-            result[file_path.stem] = scorings
-            debug(f'Read {len(scorings)} scorings from {file_path}')
+            scoring = Scoring.from_csv(rd, answers)
+            result[file_path.stem] = scoring
+            debug(f'Read {len(scoring)} scorings from {file_path}')
 
     return result
