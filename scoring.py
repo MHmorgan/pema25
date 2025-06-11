@@ -4,7 +4,7 @@ from pathlib import Path
 import csv
 import statistics
 
-from answers import Answers, Answer, AnswerNumbered, AnswerCategorized
+from answers import Answer
 from utils import debug
 
 D_SCORING = Path('data/scoring/')
@@ -16,11 +16,11 @@ class Scoring(list):
         super().__init__(sorted(rows, key=lambda row: row.number))
 
     @classmethod
-    def from_csv(cls, rows, answers: Answers):
+    def from_csv(cls, rows, answers: Iterable[Answer]):
         return cls(ScoringEntry.from_csv(row, answers) for row in rows)
 
     @classmethod
-    def from_median(cls, lst: list['Scoring']):
+    def from_median(cls, lst: Iterable['Scoring']):
         scoring = [
             ScoringEntry.from_median(zipped)
             for zipped in zip(*lst)
@@ -39,32 +39,32 @@ class Scoring(list):
     def without_ai(self) -> 'Scoring':
         return Scoring(s for s in self if not s.answer.used_ai)
 
-    def answers(self) -> list[AnswerNumbered]:
+    def answers(self) -> list[Answer]:
         return [s.answer for s in self]
 
-    def original_mean(self, answers: Iterable[AnswerCategorized]):
+    def original_mean(self, answers: Iterable[Answer]):
         nums = [self.find(ans.number).original for ans in answers]
         return statistics.mean(nums)
 
-    def plausible_mean(self, answers: Iterable[AnswerCategorized]):
+    def plausible_mean(self, answers: Iterable[Answer]):
         nums = [self.find(ans.number).plausible for ans in answers]
         return statistics.mean(nums)
 
-    def effective_mean(self, answers: Iterable[AnswerCategorized]):
+    def effective_mean(self, answers: Iterable[Answer]):
         nums = [self.find(ans.number).effective for ans in answers]
         return statistics.mean(nums)
 
 
 @dataclass
 class ScoringEntry:
-    answer: AnswerNumbered
+    answer: Answer
     number: int
     original: int
     plausible: int
     effective: int
 
     @classmethod
-    def from_csv(cls, row, answers: Answers):
+    def from_csv(cls, row, answers: Iterable[Answer]):
         assert len(row) == 15, f'Expected 15 columns in scoring, got {len(row)}'
 
         number = int(row[0])
@@ -75,7 +75,7 @@ class ScoringEntry:
 
         for ans in answers:
             if ans.idea1 == idea1:
-                answer = AnswerNumbered(ans.row, number)
+                answer = ans.numbered(number)
                 break
         else:
             raise ValueError(f'Idea {number} not found in answers :: {idea1}')
@@ -97,7 +97,7 @@ class ScoringEntry:
         return cls(answer, number, original, plausible, effective)
 
     @classmethod
-    def from_answer(cls, answer: AnswerNumbered, number: int):
+    def from_answer(cls, answer: Answer, number: int):
         return cls(
             answer=answer,
             number=number,

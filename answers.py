@@ -1,6 +1,5 @@
-from collections.abc import Iterable
-from pathlib import Path
 import csv
+from collections.abc import Iterable
 
 import arrow
 
@@ -8,17 +7,6 @@ from extra import CategoryEntry, Categories
 from utils import *
 
 F_ANSWERS = Path('data/alle-svar.csv')
-
-
-class Answers:
-    def __init__(self, rows):
-        self.answers = [Answer(row) for row in rows]
-
-    def __iter__(self):
-        return iter(self.answers)
-
-    def __len__(self):
-        return len(self.answers)
 
 
 class Answer:
@@ -41,6 +29,26 @@ class Answer:
         self.idea4 = row[22] or row[56]
         self.idea5 = row[23] or row[57]
 
+        # How they used AI when answering
+        self.ans_usages = row[46] or row[79]
+        if self.ans_usages:
+            self.ans_usages = self.ans_usages.split(',')
+
+        # How much they use AI at work
+        self.work_usage = row[83]
+
+        self.ai_time_saved = row[91]
+        self.ai_quality = row[92]
+        self.ai_critical = row[93]
+        self.ai_knowledge = row[95]
+        self.ai_education = row[96]
+        self.age = row[97]
+        self.experience = row[98]
+        self.sex = row[99]
+        self.department = row[100]
+        self.education_level = row[101]
+        self.role = row[102]
+
         try:
             self.original = int(row[41] or row[75])
             self.plausible = int(row[42] or row[76])
@@ -52,32 +60,64 @@ class Answer:
 
         self.used_ai = row[-1] == 'AI'
 
+        self._number = None
+        self._category = None
+        self._ideas = None
 
-class AnswerNumbered(Answer):
-    def __init__(self, row, number):
-        super().__init__(row)
-        self.number = number
+    @property
+    def number(self):
+        if self._number is None:
+            raise ValueError('Number not set for this answer')
+        return self._number
+
+    @number.setter
+    def number(self, value):
+        self._number = value
+
+    def numbered(self, value):
+        self._number = value
+        return self
+
+    @property
+    def category(self):
+        if self._category is None:
+            raise ValueError('Category not set for this answer')
+        return self._category
+
+    @category.setter
+    def category(self, value):
+        self._category = value
+
+    @property
+    def ideas(self):
+        if self._ideas is None:
+            raise ValueError('Ideas not set for this answer')
+        return self._ideas
+
+    @ideas.setter
+    def ideas(self, value):
+        self._ideas = value
+
+    def categorized(self, category: CategoryEntry):
+        self._category = category.category
+        self._ideas = category.ideas
+        return self
 
 
-class AnswerCategorized(Answer):
-    def __init__(self, row, cat: CategoryEntry):
-        super().__init__(row)
-        self.number = cat.number
-        self.category = cat.category
-        self.ideas = cat.ideas
+def categorize(answers: Iterable[Answer], categories: Categories) -> list[Answer]:
+    """
+    Use the `categories` to categorize all the given answers.
+
+    If an answer isn't categorized, this will fail.
+    """
+    return [ans.categorized(categories[ans.id]) for ans in answers]
 
 
-def categorize(
-        answers: Iterable[Answer],
-        categories: Categories,
-) -> list[AnswerCategorized]:
-    return [
-        AnswerCategorized(ans.row, categories[ans.id])
-        for ans in answers
-    ]
+def read_answers() -> list[Answer]:
+    """
+    Read all answers from the CSV file in the data folder.
+    """
 
-
-def read_answers() -> Answers:
     with open(F_ANSWERS, 'r', encoding='utf-8') as f:
         rd = csv.reader(f, delimiter=';')
 
@@ -85,6 +125,19 @@ def read_answers() -> Answers:
         next(rd)
         next(rd)
 
-        res = Answers(rd)
-        debug(f'Read {len(res.answers)} answers from {F_ANSWERS}')
+        res = [Answer(row) for row in rd]
+        debug(f'Read {len(res)} answers from {F_ANSWERS}')
         return res
+
+
+def experiment_usages(answers: Iterable[Answer]):
+    """
+    Return pairs of (<category>, <count>) for how the respondents
+    used AI when solving the experiment.
+    """
+    res = {}
+    for ans in answers:
+        for cat in ans.ans_usages:
+            cnt = res.setdefault(cat, 0)
+            res[cat] = cnt + 1
+    return [(cat, cnt) for cat, cnt in res.items()]

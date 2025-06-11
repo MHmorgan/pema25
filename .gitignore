@@ -1,6 +1,9 @@
 data/
+source/
+out/
 .idea/
 .DS_Store
+Session.vim
 
 *.pdf
 

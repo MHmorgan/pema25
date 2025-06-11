@@ -1,10 +1,12 @@
-import csv
 import statistics
+import sys
 from dataclasses import dataclass
-
-from scoring import Scoring
+from functools import partial
 
 import matplotlib.pyplot as plt
+
+from scoring import Scoring
+from utils import *
 
 
 class AvgMedian:
@@ -22,65 +24,64 @@ class AvgMedian:
         )
 
 
-def scoring_report(with_ai: Scoring, without: Scoring):
-    print(f'With AI: {len(with_ai)}')
-    print(f'Without: {len(without)}')
+def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
+    show = partial(print, file=fout)
 
-    print('\nOriginalitet')
+    show('\nOriginalitet')
     am = AvgMedian(
         name='Originalitet',
         with_ai=[s.original for s in with_ai],
         without=[s.original for s in without],
     )
-    print(am)
+    show(am)
 
-    print('\nGjennomførbarhet')
+    show('\nGjennomførbarhet')
     am = AvgMedian(
         name='Gjennomførbarhet',
         with_ai=[s.plausible for s in with_ai],
         without=[s.plausible for s in without],
     )
-    print(am)
+    show(am)
 
-    print('\nPotensiell effekt')
+    show('\nPotensiell effekt')
     am = AvgMedian(
         name='Potensiell effekt',
         with_ai=[s.effective for s in with_ai],
         without=[s.effective for s in without],
     )
-    print(am)
+    show(am)
 
-    # print('\nTotal, gjennomsnitt')
+    # show('\nTotal, gjennomsnitt')
     # am = AvgMedian(
     #     name='Total, gjennomsnitt',
     #     with_ai=[s.total() for s in with_ai],
     #     without=[s.total() for s in without],
     # )
-    # print(am)
+    # show(am)
     #
-    # print('\nTotal, 40/30/30')
+    # show('\nTotal, 40/30/30')
     # am = AvgMedian(
     #     name='Total, 40/30/30',
     #     with_ai=[s.total_weighted(.4, .3) for s in with_ai],
     #     without=[s.total_weighted(.4, .3) for s in without],
     # )
-    # print(am)
+    # show(am)
     #
-    # print('\nTotal, 40/20/40')
+    # show('\nTotal, 40/20/40')
     # am = AvgMedian(
     #     name='Total, 40/20/40',
     #     with_ai=[s.total_weighted(.4, .2) for s in with_ai],
     #     without=[s.total_weighted(.4, .2) for s in without],
     # )
-    # print(am)
+    # show(am)
 
-    print('\nTotal, 60/20/20')
+    show('\nTotal, 60/20/20')
     am = AvgMedian(
         name='Total, 60/20/20',
         with_ai=[s.total_weighted(.6, .2) for s in with_ai],
         without=[s.total_weighted(.6, .2) for s in without],
     )
-    print(am)
+    show(am)
 
 
 @dataclass
@@ -90,7 +91,43 @@ class DataSet:
     values: list[float]
 
 
-def bar_plot(
+def bar_plot_single(
+        name,
+        values,
+        label,
+        title,
+        ylabel,
+        xlabel,
+        xticklabels,
+        rotation=90,
+        figsize=(12, 8),
+        bar_width=0.35
+):
+    plt.figure(figsize=figsize)
+    x = list(range(len(values)))
+
+    # Grid lines
+    plt.grid(True, axis='y', alpha=0.3, linestyle='-', linewidth=0.5)
+
+    # Create bars
+    plt.bar([i for i in x], values, width=bar_width, label=label)
+
+    # Add labels, title and legend
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xticks(x, xticklabels, rotation=rotation)
+    plt.legend()
+    plt.tight_layout()
+
+    # Write to file
+    fout = outdir / f'{name}.png'
+    plt.savefig(fout)
+    debug(f'Wrote graph: {name}')
+
+
+def bar_plot_compare(
+        name,
         values_with_ai,
         values_without,
         title,
@@ -115,10 +152,15 @@ def bar_plot(
     plt.xticks(x, xticklabels, rotation=rotation)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+
+    # Write to file
+    fout = outdir / f'{name}.png'
+    plt.savefig(fout)
+    debug(f'Wrote graph: {name}')
 
 
 def line_plot(
+        name,
         line_values,
         line_labels,
         title,
@@ -144,10 +186,15 @@ def line_plot(
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.show()
+
+    # Write to file
+    fout = outdir / f'{name}.png'
+    plt.savefig(fout)
+    debug(f'Wrote graph: {name}')
 
 
 def scatter_plot(
+        name,
         line_values,
         line_labels,
         title,
@@ -177,4 +224,9 @@ def scatter_plot(
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.3)
     plt.tight_layout()
-    plt.show()
+
+    # Write to file
+    fout = outdir / f'{name}.png'
+    plt.savefig(fout)
+    debug(f'Wrote graph: {name}')
+
