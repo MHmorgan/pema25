@@ -145,3 +145,36 @@ def line_plot(
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.show()
+
+
+def scatter_plot(
+        line_values,
+        line_labels,
+        title,
+        ylabel,
+        xlabel,
+        xticklabels,
+        rotation=90,
+        figsize=(12, 8),
+        marker_size=8
+):
+    plt.figure(figsize=figsize)
+    x = list(range(len(line_values[0])))
+
+    # Create scatter plots for each line
+    markers = ['o', 's', '^', 'D', 'v']
+
+    for i, values in enumerate(line_values):
+        marker = markers[i % len(markers)]
+        label = line_labels[i] if i < len(line_labels) else f'Series {i+1}'
+        plt.scatter(x, values, label=label, s=marker_size*10, marker=marker, alpha=0.7)
+
+    # Add labels, title and legend
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xticks(x, xticklabels, rotation=rotation)
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.3)
+    plt.tight_layout()
+    plt.show()

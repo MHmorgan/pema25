@@ -118,14 +118,17 @@ def read_scorings(answers) -> dict[str, Scoring]:
     result = {}
 
     for file_path in D_SCORING.glob('*.csv'):
-        with open(file_path, 'r', encoding='utf-8') as f:
-            rd = csv.reader(f, delimiter=';')
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                rd = csv.reader(f, delimiter=';')
 
-            # Skip the header row
-            next(rd)
+                # Skip the header row
+                next(rd)
 
-            scoring = Scoring.from_csv(rd, answers)
-            result[file_path.stem] = scoring
-            debug(f'Read {len(scoring)} scorings from {file_path}')
+                scoring = Scoring.from_csv(rd, answers)
+                result[file_path.stem] = scoring
+                debug(f'Read {len(scoring)} scorings from {file_path}')
+        except Exception as e:
+            raise Exception(f'Error parsing {file_path}: {e}') from e
 
     return result
