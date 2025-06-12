@@ -130,6 +130,10 @@ def read_answers() -> list[Answer]:
         return res
 
 
+def distinct(answers: Iterable[Answer], getkey) -> list:
+    return list({getkey(ans) for ans in answers})
+
+
 def experiment_usages(answers: Iterable[Answer]):
     """
     Return pairs of (<category>, <count>) for how the respondents

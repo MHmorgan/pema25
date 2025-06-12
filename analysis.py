@@ -1,12 +1,19 @@
+import csv
 import statistics
 import sys
 from dataclasses import dataclass
 from functools import partial
+from pprint import pprint
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from scoring import Scoring
 from utils import *
+
+
+def fmt_num(num):
+    return f'{num:.02f}'.replace('.', ',')
 
 
 class AvgMedian:
@@ -22,6 +29,45 @@ class AvgMedian:
                 f'Mean   = {self.mean_with_ai:>5.02f}     {self.mean_without:.02f}\n' +
                 f'Median = {self.median_with_ai:>5.02f}     {self.median_without:.02f}'
         )
+
+    def rows(self, desc):
+        return [
+            [desc, 'Gjennomsnitt', fmt_num(self.mean_with_ai), fmt_num(self.mean_without)],
+            [desc, 'Median', fmt_num(self.median_with_ai), fmt_num(self.median_without)],
+        ]
+
+
+def scoring_csv(with_ai: Scoring, without: Scoring, fout=sys.stdout):
+    w = csv.writer(fout, delimiter=';')
+    w.writerow(['Beskrivelse', 'Type', 'Med KI', 'Uten KI'])
+
+    rows = AvgMedian(
+        name='Originalitet',
+        with_ai=[s.original for s in with_ai],
+        without=[s.original for s in without],
+    ).rows('Originalitet')
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        name='Gjennomførbarhet',
+        with_ai=[s.plausible for s in with_ai],
+        without=[s.plausible for s in without],
+    ).rows('Gjennomførbarhet')
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        name='Potensiell effekt',
+        with_ai=[s.effective for s in with_ai],
+        without=[s.effective for s in without],
+    ).rows('Potensiell effekt')
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        name='Total, 60/20/20',
+        with_ai=[s.total_weighted(.6, .2) for s in with_ai],
+        without=[s.total_weighted(.6, .2) for s in without],
+    ).rows('Total, 60/20/20')
+    w.writerows(rows)
 
 
 def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
@@ -126,7 +172,7 @@ def bar_plot_single(
     debug(f'Wrote graph: {name}')
 
 
-def bar_plot_compare(
+def bar_plot_compare_ai(
         name,
         values_with_ai,
         values_without,
@@ -144,6 +190,78 @@ def bar_plot_compare(
     # Create bars
     plt.bar([i - bar_width / 2 for i in x], values_with_ai, width=bar_width, label='With AI')
     plt.bar([i + bar_width / 2 for i in x], values_without, width=bar_width, label='Without AI')
+
+    # Add labels, title and legend
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xticks(x, xticklabels, rotation=rotation)
+    plt.legend()
+    plt.tight_layout()
+
+    # Write to file
+    fout = outdir / f'{name}.png'
+    plt.savefig(fout)
+    debug(f'Wrote graph: {name}')
+
+
+def bar_plot_multiple(
+        name,
+        data_dict,
+        title,
+        ylabel,
+        xlabel,
+        xticklabels,
+        rotation=90,
+        figsize=(12, 8),
+        bar_width=None
+):
+    """
+    Create a bar plot with a variable number of bar groups.
+
+    Parameters:
+    -----------
+    name : str
+        Name for the output file
+    data_dict : dict
+        Dictionary where keys are labels and values are lists of data points
+        Example: {'With AI': [1, 2, 3], 'Without AI': [0.5, 1.5, 2.5]}
+    title : str
+        Plot title
+    ylabel : str
+        Y-axis label
+    xlabel : str
+        X-axis label
+    xticklabels : list
+        Labels for x-axis ticks
+    rotation : int, optional
+        Rotation angle for x-axis labels (default: 90)
+    figsize : tuple, optional
+        Figure size (width, height) in inches (default: (12, 8))
+    bar_width : float, optional
+        Width of each bar. If None, automatically calculated based on number of groups
+    """
+    plt.figure(figsize=figsize)
+
+    pprint(data_dict)
+
+    # Get the number of groups and data points
+    num_groups = len(data_dict)
+    num_points = len(next(iter(data_dict.values())))
+
+    # Calculate bar width if not provided
+    if bar_width is None:
+        bar_width = 0.8 / num_groups
+
+    # Calculate positions for each group
+    x = np.arange(num_points)
+
+    # Calculate offset positions for each bar group
+    offsets = np.linspace(-(num_groups - 1) / 2, (num_groups - 1) / 2, num_groups) * bar_width
+
+    # Create bars for each data series
+    for i, (label, values) in enumerate(data_dict.items()):
+        plt.bar(x + offsets[i], values, width=bar_width, label=label)
 
     # Add labels, title and legend
     plt.xlabel(xlabel)
@@ -213,8 +331,8 @@ def scatter_plot(
 
     for i, values in enumerate(line_values):
         marker = markers[i % len(markers)]
-        label = line_labels[i] if i < len(line_labels) else f'Series {i+1}'
-        plt.scatter(x, values, label=label, s=marker_size*10, marker=marker, alpha=0.7)
+        label = line_labels[i] if i < len(line_labels) else f'Series {i + 1}'
+        plt.scatter(x, values, label=label, s=marker_size * 10, marker=marker, alpha=0.7)
 
     # Add labels, title and legend
     plt.xlabel(xlabel)
@@ -229,4 +347,3 @@ def scatter_plot(
     fout = outdir / f'{name}.png'
     plt.savefig(fout)
     debug(f'Wrote graph: {name}')
-

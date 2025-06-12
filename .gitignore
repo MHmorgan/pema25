@@ -5,6 +5,7 @@ out/
 .DS_Store
 Session.vim
 
+*.zip
 *.pdf
 
 # Byte-compiled / optimized / DLL files

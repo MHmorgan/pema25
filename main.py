@@ -1,3 +1,5 @@
+from itertools import permutations
+
 import answers
 import analysis
 import extra
@@ -7,6 +9,7 @@ from utils import *
 info('Reading input data...')
 all_answers = answers.read_answers()
 scorings = read_scorings(all_answers)
+debug(f'Scorings: {scorings.keys()}')
 
 # Use first scoring to determine which answers are relevant
 for scoring in scorings.values():
@@ -42,17 +45,75 @@ for ans in categorized_without:
 #
 # ------------------------------------------------------------------------------
 
+author_scorings = [
+    scorings['pernille'],
+    scorings['trine'],
+    scorings['kristoffer'],
+    scorings['thomas'],
+]
+author_scoring_median = Scoring.from_median(author_scorings)
+author_scoring_mean = Scoring.from_mean(author_scorings)
+
+expert_scorings = [
+    scorings['zia'],
+    scorings['monique'],
+]
+expert_scoring_median = Scoring.from_median(expert_scorings)
+expert_scoring_mean = Scoring.from_mean(expert_scorings)
+
+total_scoring = author_scorings + expert_scorings
+total_scoring_median = Scoring.from_median(total_scoring)
+total_scoring_mean = Scoring.from_mean(total_scoring)
+
 # --------------------------------------
 # Median scoring
 # --------------------------------------
 
-info('Median scoring')
-median = Scoring.from_median(scorings.values())
+info('Scoring authors - median')
+with open(outdir / 'median-scoring-authors.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=author_scoring_median.with_ai(),
+        without=author_scoring_median.without_ai(),
+        fout=f
+    )
 
-with open(outdir / 'median-scoring.txt', 'w') as f:
-    analysis.scoring_report(
-        with_ai=median.with_ai(),
-        without=median.without_ai(),
+info('Scoring authors - median')
+with open(outdir / 'mean-scoring-authors.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=author_scoring_mean.with_ai(),
+        without=author_scoring_mean.without_ai(),
+        fout=f
+    )
+
+info('Scoring expert - median')
+with open(outdir / 'median-scoring-expert.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=expert_scoring_median.with_ai(),
+        without=expert_scoring_median.without_ai(),
+        fout=f
+    )
+
+info('Scoring expert - mean')
+with open(outdir / 'mean-scoring-expert.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=expert_scoring_mean.with_ai(),
+        without=expert_scoring_mean.without_ai(),
+        fout=f
+    )
+
+info('Scoring total - median')
+with open(outdir / 'median-scoring-total.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=total_scoring_median.with_ai(),
+        without=total_scoring_median.without_ai(),
+        fout=f
+    )
+
+info('Scoring total - mean')
+with open(outdir / 'mean-scoring-total.csv', 'w') as f:
+    analysis.scoring_csv(
+        with_ai=total_scoring_mean.with_ai(),
+        without=total_scoring_mean.without_ai(),
         fout=f
     )
 
@@ -66,8 +127,8 @@ self_evals = Scoring(
     for ans in scored_answers
 )
 
-with open(outdir / 'self-evaluation.txt', 'w') as f:
-    analysis.scoring_report(
+with open(outdir / 'self-evaluation.csv', 'w') as f:
+    analysis.scoring_csv(
         with_ai=self_evals.with_ai(),
         without=self_evals.without_ai(),
         fout=f
@@ -88,13 +149,13 @@ info('Category distribution')
 with_ai_count = {k: len(g) for k, g in categorized_with_ai_grouped.items()}
 without_count = {k: len(g) for k, g in categorized_without_grouped.items()}
 
-analysis.bar_plot_compare(
+analysis.bar_plot_compare_ai(
     name='kategori-distribusjon',
     values_with_ai=[with_ai_count.get(cat, 0) for cat in category_names],
     values_without=[without_count.get(cat, 0) for cat in category_names],
-    title='Category Distribution: With AI vs Without AI',
-    ylabel='Count',
-    xlabel='Categories',
+    title='Distribusjon kategori: Med KI vs uten KI',
+    ylabel='Antall',
+    xlabel='Kategorier',
     xticklabels=category_names,
 )
 
@@ -102,28 +163,78 @@ analysis.bar_plot_compare(
 # Category Scoring
 # --------------------------------------
 
-info('Originality distribution')
+info('Originality distribution - authors')
 
 with_ai_original = {
-    category: median.original_mean(answers)
+    category: author_scoring_mean.original_mean(answers)
     for category, answers in categorized_with_ai_grouped.items()
 }
 
 without_original = {
-    category: median.original_mean(answers)
+    category: author_scoring_mean.original_mean(answers)
     for category, answers in categorized_without_grouped.items()
 }
 
 analysis.scatter_plot(
-    name='kategori-originalitet',
+    name='category-original-authors',
     line_values=[
         [with_ai_original.get(cat, None) for cat in category_names],
         [without_original.get(cat, None) for cat in category_names],
     ],
-    line_labels=['With AI', 'Without AI'],
-    title='Category Originalitet: With AI vs Without AI',
-    ylabel='Count',
-    xlabel='Categories',
+    line_labels=['Med KI', 'Uten KI'],
+    title='Kategori, Originalitet: Med KI vs uten KI (forfattere)',
+    ylabel='Antall',
+    xlabel='Kategorier',
+    xticklabels=category_names,
+)
+
+info('Originality distribution - experts')
+
+with_ai_original = {
+    category: expert_scoring_mean.original_mean(answers)
+    for category, answers in categorized_with_ai_grouped.items()
+}
+
+without_original = {
+    category: expert_scoring_mean.original_mean(answers)
+    for category, answers in categorized_without_grouped.items()
+}
+
+analysis.scatter_plot(
+    name='category-original-expert',
+    line_values=[
+        [with_ai_original.get(cat, None) for cat in category_names],
+        [without_original.get(cat, None) for cat in category_names],
+    ],
+    line_labels=['Med KI', 'Uten KI'],
+    title='Kategory, Originalitet: Med KI vs uten KI (eksperter)',
+    ylabel='Antall',
+    xlabel='Kategorier',
+    xticklabels=category_names,
+)
+
+info('Originality distribution - totals')
+
+with_ai_original = {
+    category: total_scoring_mean.original_mean(answers)
+    for category, answers in categorized_with_ai_grouped.items()
+}
+
+without_original = {
+    category: total_scoring_mean.original_mean(answers)
+    for category, answers in categorized_without_grouped.items()
+}
+
+analysis.scatter_plot(
+    name='category-original-total',
+    line_values=[
+        [with_ai_original.get(cat, None) for cat in category_names],
+        [without_original.get(cat, None) for cat in category_names],
+    ],
+    line_labels=['Med KI', 'Uten KI'],
+    title='Kategori, Originalitet: Med KI vs uten KI (totalt)',
+    ylabel='Antall',
+    xlabel='Kategorier',
     xticklabels=category_names,
 )
 
@@ -151,7 +262,7 @@ with open(outdir / 'number-of-ideas.txt', 'w') as f:
     print(f'Average  {avg_with_ai:>2}   {avg_without:.3}', file=f)
 
 # --------------------------------------
-# Usage
+# AI usage in experiment
 # --------------------------------------
 
 categories = answers.experiment_usages(scored_answers)
@@ -164,6 +275,4 @@ analysis.bar_plot_single(
     ylabel='Antall svar',
     xlabel='Bruksområde',
     xticklabels=[cat for (cat, count) in categories],
-    rotation=30,
 )
-

@@ -27,6 +27,14 @@ class Scoring(list):
         ]
         return cls(scoring)
 
+    @classmethod
+    def from_mean(cls, lst: Iterable['Scoring']):
+        scoring = [
+            ScoringEntry.from_mean(zipped)
+            for zipped in zip(*lst)
+        ]
+        return cls(scoring)
+
     def find(self, number) -> 'ScoringEntry':
         for score in self:
             if score.number == number:
@@ -59,9 +67,9 @@ class Scoring(list):
 class ScoringEntry:
     answer: Answer
     number: int
-    original: int
-    plausible: int
-    effective: int
+    original: float
+    plausible: float
+    effective: float
 
     @classmethod
     def from_csv(cls, row, answers: Iterable[Answer]):
@@ -93,6 +101,20 @@ class ScoringEntry:
         original = statistics.median_high([s.original for s in scoring])
         plausible = statistics.median_high([s.plausible for s in scoring])
         effective = statistics.median_high([s.effective for s in scoring])
+
+        return cls(answer, number, original, plausible, effective)
+
+    @classmethod
+    def from_mean(cls, scoring: tuple['ScoringEntry']):
+        answer = scoring[0].answer
+        number = scoring[0].number
+        for s in scoring[1:]:
+            assert s.answer.id == answer.id
+            assert s.number == number
+
+        original = statistics.mean([s.original for s in scoring])
+        plausible = statistics.mean([s.plausible for s in scoring])
+        effective = statistics.mean([s.effective for s in scoring])
 
         return cls(answer, number, original, plausible, effective)
 
