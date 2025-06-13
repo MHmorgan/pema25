@@ -1,10 +1,10 @@
-from itertools import permutations
-
 import answers
 import analysis
 import extra
 from scoring import *
 from utils import *
+
+from scipy import stats
 
 info('Reading input data...')
 all_answers = answers.read_answers()
@@ -142,8 +142,14 @@ with open(outdir / 'self-evaluation.csv', 'w') as f:
 # ------------------------------------------------------------------------------
 
 # --------------------------------------
-# Category Count
 # --------------------------------------
+
+# ------------------------------------------------------------------------------
+#
+# Category Count
+# Counting the answers for each category. Plot the distribution.
+#
+# ------------------------------------------------------------------------------
 
 info('Category distribution')
 with_ai_count = {k: len(g) for k, g in categorized_with_ai_grouped.items()}
@@ -159,9 +165,12 @@ analysis.bar_plot_compare_ai(
     xticklabels=category_names,
 )
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
+#
 # Category Scoring
-# --------------------------------------
+# Plot the scoring per category, for different scorers.
+#
+# ------------------------------------------------------------------------------
 
 info('Originality distribution - authors')
 
@@ -238,9 +247,11 @@ analysis.scatter_plot(
     xticklabels=category_names,
 )
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
+#
 # Number of Ideas
-# --------------------------------------
+#
+# ------------------------------------------------------------------------------
 
 info('Number of ideas')
 
@@ -260,10 +271,15 @@ with open(outdir / 'number-of-ideas.txt', 'w') as f:
     print(f'    With AI   Without', file=f)
     print(f'Total    {cnt_with_ai:>2}   {cnt_without}', file=f)
     print(f'Average  {avg_with_ai:>2}   {avg_without:.3}', file=f)
+    debug(f'Wrote text: {f.name}')
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
+#
 # AI usage in experiment
-# --------------------------------------
+#
+# ------------------------------------------------------------------------------
+
+info('AI usage in experiment')
 
 categories = answers.experiment_usages(scored_answers)
 
@@ -276,3 +292,73 @@ analysis.bar_plot_single(
     xlabel='Bruksområde',
     xticklabels=[cat for (cat, count) in categories],
 )
+
+
+# ------------------------------------------------------------------------------
+#
+# T-Testing
+#
+# ------------------------------------------------------------------------------
+
+def weighted(score): return score.total_weighted(.6, .2)
+
+
+info("T-testing mean scorings")
+
+authors_weighted = stats.ttest_ind(
+    [weighted(score) for score in author_scoring_mean.with_ai()],
+    [weighted(score) for score in author_scoring_mean.without_ai()]
+)
+authors_equal = stats.ttest_ind(
+    [score.total() for score in author_scoring_mean.with_ai()],
+    [score.total() for score in author_scoring_mean.without_ai()]
+)
+
+experts_weighted = stats.ttest_ind(
+    [weighted(score) for score in expert_scoring_mean.with_ai()],
+    [weighted(score) for score in expert_scoring_mean.without_ai()]
+)
+experts_equal = stats.ttest_ind(
+    [score.total() for score in expert_scoring_mean.with_ai()],
+    [score.total() for score in expert_scoring_mean.without_ai()]
+)
+
+totals_weighted = stats.ttest_ind(
+    [weighted(score) for score in total_scoring_mean.with_ai()],
+    [weighted(score) for score in total_scoring_mean.without_ai()]
+)
+totals_equal = stats.ttest_ind(
+    [score.total() for score in total_scoring_mean.with_ai()],
+    [score.total() for score in total_scoring_mean.without_ai()]
+)
+
+self_weighted = stats.ttest_ind(
+    [weighted(score) for score in self_evals.with_ai()],
+    [weighted(score) for score in self_evals.without_ai()]
+)
+self_equal = stats.ttest_ind(
+    [score.total() for score in self_evals.with_ai()],
+    [score.total() for score in self_evals.without_ai()]
+)
+
+with open(outdir / 't-testing.csv', 'w') as f:
+    w = csv.writer(f, delimiter=';')
+    w.writerow(['', 'Forfattere', 'Eksperter', 'Forfattere og Eksperter', 'Selvevaluering'])
+
+    w.writerow([
+        'Likt Vektet',
+        fmt_num(authors_equal.pvalue),
+        fmt_num(experts_equal.pvalue),
+        fmt_num(totals_equal.pvalue),
+        fmt_num(self_equal.pvalue),
+    ])
+
+    w.writerow([
+        'Vektet 60/20/20',
+        fmt_num(authors_weighted.pvalue),
+        fmt_num(experts_weighted.pvalue),
+        fmt_num(totals_weighted.pvalue),
+        fmt_num(self_weighted.pvalue),
+    ])
+
+    debug(f'Wrote CSV: {f.name}')

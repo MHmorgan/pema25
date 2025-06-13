@@ -12,12 +12,9 @@ from scoring import Scoring
 from utils import *
 
 
-def fmt_num(num):
-    return f'{num:.02f}'.replace('.', ',')
-
-
 class AvgMedian:
-    def __init__(self, name, with_ai, without):
+    def __init__(self, desc, with_ai, without):
+        self.desc = desc
         self.mean_with_ai = statistics.mean(with_ai)
         self.mean_without = statistics.mean(without)
         self.median_with_ai = statistics.median(with_ai)
@@ -30,10 +27,10 @@ class AvgMedian:
                 f'Median = {self.median_with_ai:>5.02f}     {self.median_without:.02f}'
         )
 
-    def rows(self, desc):
+    def rows(self):
         return [
-            [desc, 'Gjennomsnitt', fmt_num(self.mean_with_ai), fmt_num(self.mean_without)],
-            [desc, 'Median', fmt_num(self.median_with_ai), fmt_num(self.median_without)],
+            [self.desc, 'Gjennomsnitt', fmt_num(self.mean_with_ai), fmt_num(self.mean_without)],
+            [self.desc, 'Median', fmt_num(self.median_with_ai), fmt_num(self.median_without)],
         ]
 
 
@@ -42,31 +39,66 @@ def scoring_csv(with_ai: Scoring, without: Scoring, fout=sys.stdout):
     w.writerow(['Beskrivelse', 'Type', 'Med KI', 'Uten KI'])
 
     rows = AvgMedian(
-        name='Originalitet',
+        desc='Originalitet',
         with_ai=[s.original for s in with_ai],
         without=[s.original for s in without],
-    ).rows('Originalitet')
+    ).rows()
     w.writerows(rows)
 
     rows = AvgMedian(
-        name='Gjennomførbarhet',
+        desc='Gjennomførbarhet',
         with_ai=[s.plausible for s in with_ai],
         without=[s.plausible for s in without],
-    ).rows('Gjennomførbarhet')
+    ).rows()
     w.writerows(rows)
 
     rows = AvgMedian(
-        name='Potensiell effekt',
+        desc='Potensiell effekt',
         with_ai=[s.effective for s in with_ai],
         without=[s.effective for s in without],
-    ).rows('Potensiell effekt')
+    ).rows()
     w.writerows(rows)
 
     rows = AvgMedian(
-        name='Total, 60/20/20',
+        desc='Total, gjennomsnitt',
+        with_ai=[s.total() for s in with_ai],
+        without=[s.total() for s in without],
+    ).rows()
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        desc='Total, 60/20/20',
         with_ai=[s.total_weighted(.6, .2) for s in with_ai],
         without=[s.total_weighted(.6, .2) for s in without],
-    ).rows('Total, 60/20/20')
+    ).rows()
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        desc='Total, 50/25/25',
+        with_ai=[s.total_weighted(.5, .25) for s in with_ai],
+        without=[s.total_weighted(.5, .25) for s in without],
+    ).rows()
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        desc='Total, 50/20/30',
+        with_ai=[s.total_weighted(.5, .2) for s in with_ai],
+        without=[s.total_weighted(.5, .2) for s in without],
+    ).rows()
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        desc='Total, 40/30/30',
+        with_ai=[s.total_weighted(.4, .3) for s in with_ai],
+        without=[s.total_weighted(.4, .3) for s in without],
+    ).rows()
+    w.writerows(rows)
+
+    rows = AvgMedian(
+        desc='Total, 40/20/40',
+        with_ai=[s.total_weighted(.4, .2) for s in with_ai],
+        without=[s.total_weighted(.4, .2) for s in without],
+    ).rows()
     w.writerows(rows)
 
 
@@ -75,7 +107,7 @@ def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
 
     show('\nOriginalitet')
     am = AvgMedian(
-        name='Originalitet',
+        desc='Originalitet',
         with_ai=[s.original for s in with_ai],
         without=[s.original for s in without],
     )
@@ -83,7 +115,7 @@ def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
 
     show('\nGjennomførbarhet')
     am = AvgMedian(
-        name='Gjennomførbarhet',
+        desc='Gjennomførbarhet',
         with_ai=[s.plausible for s in with_ai],
         without=[s.plausible for s in without],
     )
@@ -91,7 +123,7 @@ def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
 
     show('\nPotensiell effekt')
     am = AvgMedian(
-        name='Potensiell effekt',
+        desc='Potensiell effekt',
         with_ai=[s.effective for s in with_ai],
         without=[s.effective for s in without],
     )
@@ -123,7 +155,7 @@ def scoring_report(with_ai: Scoring, without: Scoring, fout=sys.stdout):
 
     show('\nTotal, 60/20/20')
     am = AvgMedian(
-        name='Total, 60/20/20',
+        desc='Total, 60/20/20',
         with_ai=[s.total_weighted(.6, .2) for s in with_ai],
         without=[s.total_weighted(.6, .2) for s in without],
     )
