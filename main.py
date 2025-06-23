@@ -506,12 +506,26 @@ ttest_timings()
 # --------------------------------------
 
 def ttest_originality():
-    debug('T-testing originality')
+    debug('T-testing originality authors')
+    res = ttest(
+        [score.original for score in author_scoring_mean.with_ai()],
+        [score.original for score in author_scoring_mean.without_ai()]
+    )
+    wttest.writerow(['Originalitet - Forfattere', fmt_num4(res.pvalue)])
+
+    debug('T-testing originality experts')
+    res = ttest(
+        [score.original for score in expert_scoring_mean.with_ai()],
+        [score.original for score in expert_scoring_mean.without_ai()]
+    )
+    wttest.writerow(['Originalitet - Eksperter', fmt_num4(res.pvalue)])
+
+    debug('T-testing originality total')
     res = ttest(
         [score.original for score in total_scoring_mean.with_ai()],
         [score.original for score in total_scoring_mean.without_ai()]
     )
-    wttest.writerow(['Originality', fmt_num4(res.pvalue)])
+    wttest.writerow(['Originalitet - Forfattere og eksperter', fmt_num4(res.pvalue)])
 
 info("T-testing originality")
 ttest_originality()
