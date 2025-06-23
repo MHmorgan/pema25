@@ -9,6 +9,13 @@ from utils import *
 F_ANSWERS = Path('data/alle-svar.csv')
 
 
+def float_no(s):
+    try:
+        return float(s.replace(',', '.'))
+    except ValueError:
+        return 0.0
+
+
 class Answer:
     def __init__(self, row):
         self.row = row
@@ -28,6 +35,13 @@ class Answer:
         self.idea3 = row[21] or row[55]
         self.idea4 = row[22] or row[56]
         self.idea5 = row[23] or row[57]
+
+        self.difficulty = row[44] or row[78]
+
+        self.time_brainstorm = float_no(row[26] or row[60])
+        self.time_description = float_no(row[32] or row[66])
+        self.time_effect = float_no(row[39] or row[73])
+        self.time_total = self.time_brainstorm + self.time_description + self.time_effect
 
         # How they used AI when answering
         self.ans_usages = row[46] or row[79]

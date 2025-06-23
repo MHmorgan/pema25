@@ -25,5 +25,5 @@ def err(msg):
     secho(f'[!] {msg}', fg='red', err=True)
 
 
-def fmt_num(num):
-    return f'{num:.02f}'.replace('.', ',')
+def fmt_num(num, w=2):
+    return f'{num:.0{w}f}'.replace('.', ',')

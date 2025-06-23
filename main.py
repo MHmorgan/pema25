@@ -1,14 +1,23 @@
+from functools import partial
+from pprint import pprint, pformat
+
 import answers
 import analysis
 import extra
 from scoring import *
 from utils import *
 
+import numpy as np
 from scipy import stats
 
 info('Reading input data...')
+# All answers known to Qualtrics. Includes irrelevant answers.
+# At this point the answers is lacking numbers and categories.
 all_answers = answers.read_answers()
+
+# All scorings done by the authors and experts.
 scorings = read_scorings(all_answers)
+
 debug(f'Scorings: {scorings.keys()}')
 
 # Use first scoring to determine which answers are relevant
@@ -17,12 +26,14 @@ for scoring in scorings.values():
     scored_with_ai = [ans for ans in scoring.with_ai().answers()]
     scored_without = [ans for ans in scoring.without_ai().answers()]
     break
+
 debug(f'Scored answers: {len(scored_answers)}')
 
 categories = extra.read_categories()
 category_names = categories.category_names()
 debug(f'Distinct categories: {len(category_names)}')
 
+# All relevant answers, enriched with all necessary data.
 categorized_answers = answers.categorize(scored_answers, categories)
 categorized_with_ai = answers.categorize(scored_with_ai, categories)
 categorized_without = answers.categorize(scored_without, categories)
@@ -30,10 +41,12 @@ debug(f'Categorized answers: {len(scored_answers)}')
 debug(f'With AI: {len(categorized_with_ai)}')
 debug(f'Without: {len(categorized_without)}')
 
+# All relevant AI answers, grouped by category.
 categorized_with_ai_grouped = {}
 for ans in categorized_with_ai:
     categorized_with_ai_grouped.setdefault(ans.category, []).append(ans)
 
+# All relevant non-AI answers, grouped by category.
 categorized_without_grouped = {}
 for ans in categorized_without:
     categorized_without_grouped.setdefault(ans.category, []).append(ans)
@@ -64,6 +77,8 @@ expert_scoring_mean = Scoring.from_mean(expert_scorings)
 total_scoring = author_scorings + expert_scorings
 total_scoring_median = Scoring.from_median(total_scoring)
 total_scoring_mean = Scoring.from_mean(total_scoring)
+
+felles_scoring = scorings['felles']
 
 # --------------------------------------
 # Median scoring
@@ -133,16 +148,6 @@ with open(outdir / 'self-evaluation.csv', 'w') as f:
         without=self_evals.without_ai(),
         fout=f
     )
-
-# ------------------------------------------------------------------------------
-#
-# Other Dimensions
-# Analysis of the results based on other dimensions.
-# 
-# ------------------------------------------------------------------------------
-
-# --------------------------------------
-# --------------------------------------
 
 # ------------------------------------------------------------------------------
 #
@@ -303,62 +308,210 @@ analysis.bar_plot_single(
 def weighted(score): return score.total_weighted(.6, .2)
 
 
+def ttest(a, b):
+    debug(f'T-test A ({len(a)}): {pformat(a, width=140, compact=True)}')
+    debug(f'T-test B ({len(b)}): {pformat(b, width=140, compact=True)}')
+    return stats.ttest_ind(a, b)
+
+
+fmt_num4 = partial(fmt_num, w=4)
+
+
+# --------------------------------------
+# Mean Scoring
+# --------------------------------------
+
+def ttest_mean_scoring():
+    debug("Authors T-tests")
+    authors_weighted = stats.ttest_ind(
+        [weighted(score) for score in author_scoring_mean.with_ai()],
+        [weighted(score) for score in author_scoring_mean.without_ai()]
+    )
+    authors_equal = stats.ttest_ind(
+        [score.total() for score in author_scoring_mean.with_ai()],
+        [score.total() for score in author_scoring_mean.without_ai()]
+    )
+
+    debug("Felles T-tests")
+    felles_weighted = stats.ttest_ind(
+        [weighted(score) for score in felles_scoring.with_ai()],
+        [weighted(score) for score in felles_scoring.without_ai()]
+    )
+    felles_equal = stats.ttest_ind(
+        [score.total() for score in felles_scoring.with_ai()],
+        [score.total() for score in felles_scoring.without_ai()]
+    )
+
+    debug("Experts T-tests")
+    experts_weighted = stats.ttest_ind(
+        [weighted(score) for score in expert_scoring_mean.with_ai()],
+        [weighted(score) for score in expert_scoring_mean.without_ai()]
+    )
+    experts_equal = stats.ttest_ind(
+        [score.total() for score in expert_scoring_mean.with_ai()],
+        [score.total() for score in expert_scoring_mean.without_ai()]
+    )
+
+    debug("Totals T-tests")
+    totals_weighted = stats.ttest_ind(
+        [weighted(score) for score in total_scoring_mean.with_ai()],
+        [weighted(score) for score in total_scoring_mean.without_ai()]
+    )
+    totals_equal = stats.ttest_ind(
+        [score.total() for score in total_scoring_mean.with_ai()],
+        [score.total() for score in total_scoring_mean.without_ai()]
+    )
+
+    debug("Self T-tests")
+    self_weighted = stats.ttest_ind(
+        [weighted(score) for score in self_evals.with_ai()],
+        [weighted(score) for score in self_evals.without_ai()]
+    )
+    self_equal = stats.ttest_ind(
+        [score.total() for score in self_evals.with_ai()],
+        [score.total() for score in self_evals.without_ai()]
+    )
+
+    with open(outdir / 't-testing-scoring.csv', 'w') as f:
+        w = csv.writer(f, delimiter=';')
+
+        w.writerow(['', 'Forfattere', 'Eksperter', 'Forfattere og Eksperter', 'Forfattere Felles',
+                    'Selvevaluering'])
+
+        w.writerow([
+            'Likt Vektet',
+            fmt_num4(authors_equal.pvalue),
+            fmt_num4(experts_equal.pvalue),
+            fmt_num4(totals_equal.pvalue),
+            fmt_num4(felles_equal.pvalue),
+            fmt_num4(self_equal.pvalue),
+        ])
+
+        w.writerow([
+            'Vektet 60/20/20',
+            fmt_num4(authors_weighted.pvalue),
+            fmt_num4(experts_weighted.pvalue),
+            fmt_num4(totals_weighted.pvalue),
+            fmt_num4(felles_weighted.pvalue),
+            fmt_num4(self_weighted.pvalue),
+        ])
+
+        debug(f'Wrote CSV: {f.name}')
+
+
 info("T-testing mean scorings")
+ttest_mean_scoring()
 
-authors_weighted = stats.ttest_ind(
-    [weighted(score) for score in author_scoring_mean.with_ai()],
-    [weighted(score) for score in author_scoring_mean.without_ai()]
-)
-authors_equal = stats.ttest_ind(
-    [score.total() for score in author_scoring_mean.with_ai()],
-    [score.total() for score in author_scoring_mean.without_ai()]
-)
+# --------------------------------------
+# Difficulty Evaluation
+# --------------------------------------
 
-experts_weighted = stats.ttest_ind(
-    [weighted(score) for score in expert_scoring_mean.with_ai()],
-    [weighted(score) for score in expert_scoring_mean.without_ai()]
-)
-experts_equal = stats.ttest_ind(
-    [score.total() for score in expert_scoring_mean.with_ai()],
-    [score.total() for score in expert_scoring_mean.without_ai()]
-)
+fttest = open(outdir / 't-testing.csv', 'w')
+wttest = csv.writer(fttest, delimiter=';')
+wttest.writerow(['Test', 'P-value'])
 
-totals_weighted = stats.ttest_ind(
-    [weighted(score) for score in total_scoring_mean.with_ai()],
-    [weighted(score) for score in total_scoring_mean.without_ai()]
-)
-totals_equal = stats.ttest_ind(
-    [score.total() for score in total_scoring_mean.with_ai()],
-    [score.total() for score in total_scoring_mean.without_ai()]
-)
+rating = {
+    'Svært lett': 1,
+    'Lett': 2,
+    'Middels': 3,
+    'Vanskelig': 4,
+    'Svært vanskelig': 5,
+}
 
-self_weighted = stats.ttest_ind(
-    [weighted(score) for score in self_evals.with_ai()],
-    [weighted(score) for score in self_evals.without_ai()]
-)
-self_equal = stats.ttest_ind(
-    [score.total() for score in self_evals.with_ai()],
-    [score.total() for score in self_evals.without_ai()]
-)
 
-with open(outdir / 't-testing.csv', 'w') as f:
-    w = csv.writer(f, delimiter=';')
-    w.writerow(['', 'Forfattere', 'Eksperter', 'Forfattere og Eksperter', 'Selvevaluering'])
+def ttest_difficulty_evaluation():
+    res = ttest(
+        [rating[ans.difficulty] for ans in categorized_with_ai],
+        [rating[ans.difficulty] for ans in categorized_without],
+    )
+    wttest.writerow(['Difficulty Evaluation', fmt_num4(res.pvalue)])
 
-    w.writerow([
-        'Likt Vektet',
-        fmt_num(authors_equal.pvalue),
-        fmt_num(experts_equal.pvalue),
-        fmt_num(totals_equal.pvalue),
-        fmt_num(self_equal.pvalue),
-    ])
 
-    w.writerow([
-        'Vektet 60/20/20',
-        fmt_num(authors_weighted.pvalue),
-        fmt_num(experts_weighted.pvalue),
-        fmt_num(totals_weighted.pvalue),
-        fmt_num(self_weighted.pvalue),
-    ])
+info("T-testing difficulty evaluation")
+ttest_difficulty_evaluation()
 
-    debug(f'Wrote CSV: {f.name}')
+
+# --------------------------------------
+# Number of Ideas
+# --------------------------------------
+
+def ttest_number_of_ideas():
+    res = ttest(
+        [ans.ideas for ans in categorized_with_ai],
+        [ans.ideas for ans in categorized_without],
+    )
+    wttest.writerow(['Number of Ideas', fmt_num4(res.pvalue)])
+
+
+info("T-testing number of ideas")
+ttest_number_of_ideas()
+
+
+# --------------------------------------
+# Answer Category
+# --------------------------------------
+
+def ttest_answer_category():
+    cats = sorted(set(ans.category for ans in categorized_answers))
+    res = ttest(
+        [cats.index(ans.category) for ans in categorized_with_ai],
+        [cats.index(ans.category) for ans in categorized_without],
+    )
+    wttest.writerow(['Answer Category', fmt_num4(res.pvalue)])
+
+
+info("T-testing answer category")
+ttest_answer_category()
+
+
+# --------------------------------------
+# Time
+# --------------------------------------
+
+def ttest_timings():
+    debug('T-testing brainstorm time')
+    res = ttest(
+        sorted(ans.time_brainstorm for ans in categorized_with_ai),
+        sorted(ans.time_brainstorm for ans in categorized_without),
+    )
+    wttest.writerow(['Time Brainstorming', fmt_num4(res.pvalue)])
+
+    debug('T-testing description time')
+    res = ttest(
+        sorted(ans.time_description for ans in categorized_with_ai),
+        sorted(ans.time_description for ans in categorized_without),
+    )
+    wttest.writerow(['Time Description', fmt_num4(res.pvalue)])
+
+    debug('T-testing effect time')
+    res = ttest(
+        sorted(ans.time_effect for ans in categorized_with_ai if ans.time_effect < 12000),
+        sorted(ans.time_effect for ans in categorized_without),
+    )
+    wttest.writerow(['Time Effect', fmt_num4(res.pvalue)])
+
+    debug('T-testing total time')
+    res = ttest(
+        sorted(ans.time_total for ans in categorized_with_ai if ans.time_total < 12000),
+        sorted(ans.time_total for ans in categorized_without),
+    )
+    wttest.writerow(['Time Total', fmt_num4(res.pvalue)])
+
+info("T-testing time")
+ttest_timings()
+
+
+# --------------------------------------
+# Originality
+# --------------------------------------
+
+def ttest_originality():
+    debug('T-testing originality')
+    res = ttest(
+        [score.original for score in total_scoring_mean.with_ai()],
+        [score.original for score in total_scoring_mean.without_ai()]
+    )
+    wttest.writerow(['Originality', fmt_num4(res.pvalue)])
+
+info("T-testing originality")
+ttest_originality()
