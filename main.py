@@ -8,6 +8,7 @@ from scoring import *
 from utils import *
 
 import numpy as np
+import pandas as pd
 from scipy import stats
 
 info('Reading input data...')
@@ -497,6 +498,7 @@ def ttest_timings():
     )
     wttest.writerow(['Time Total', fmt_num4(res.pvalue)])
 
+
 info("T-testing time")
 ttest_timings()
 
@@ -527,5 +529,171 @@ def ttest_originality():
     )
     wttest.writerow(['Originalitet - Forfattere og eksperter', fmt_num4(res.pvalue)])
 
+
 info("T-testing originality")
 ttest_originality()
+
+
+# --------------------------------------
+# Knowledge high/low
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    ai_scores = total_scoring_mean.with_ai()
+    ai_scores.sort(key=lambda s: s.total())
+    ai_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
+
+    middle = len(ai_scores) // 2
+    high = [score.total() for score in ai_scores[:middle]]
+    low = [score.total() for score in ai_scores[middle:]]
+    res = ttest(high, low)
+    wttest.writerow(['AI-kunnskap høy vs. lav', fmt_num4(res.pvalue)])
+
+
+info("T-testing knowledge high/low")
+ttest_knowledge_highlow()
+
+
+# --------------------------------------
+# Critical high/low
+# --------------------------------------
+
+def ttest_critical_highlow():
+    ai_scores = total_scoring_mean.with_ai()
+    ai_scores.sort(key=lambda s: s.total())
+    ai_scores.sort(key=lambda s: s.answer.ai_critical_rated)
+
+    middle = len(ai_scores) // 2
+    high = [score.total() for score in ai_scores[:middle]]
+    low = [score.total() for score in ai_scores[middle:]]
+    res = ttest(high, low)
+    wttest.writerow(['AI-kritisk høy vs. lav', fmt_num4(res.pvalue)])
+
+
+info("T-testing critical high/low")
+ttest_critical_highlow()
+
+
+# --------------------------------------
+# Knowledge high med/uten
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['AI-kunnskap høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing knowledge high med/uten")
+ttest_knowledge_highlow()
+
+
+# --------------------------------------
+# Critical high med/uten
+# --------------------------------------
+
+def ttest_critical_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.ai_critical_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.ai_critical_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['AI-kritisk høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing critical high med/uten")
+ttest_critical_highlow()
+
+
+# ------------------------------------------------------------------------------
+#
+# Spearman Tests
+#
+# ------------------------------------------------------------------------------
+
+# --------------------------------------
+# Spearman AI knowledge
+# --------------------------------------
+
+def spearman_ai_knowledge():
+    data = pd.DataFrame({
+        'knowledge': [score.answer.ai_knowledge for score in total_scoring_mean],
+        'score': [score.total() for score in total_scoring_mean]
+    })
+
+    # Convert ordinal categories to numeric
+    rating_map = {
+        'Ingen kunnskap': 0,
+        'Litt kunnskap': 1,
+        'Moderat kunnskap': 2,
+        'God kunnskap': 3,
+        'Svært god kunnskap': 4
+    }
+    data['knowledge_num'] = data['knowledge'].map(rating_map)
+
+    # Calculate Spearman correlation
+    correlation, p_value = stats.spearmanr(
+        data['knowledge_num'],
+        data['score']
+    )
+    print(f"Spearman correlation: {correlation:.3f}")
+    print(f"P-value: {p_value:.4f}")
+
+
+info("Spearman - AI knowledge")
+spearman_ai_knowledge()
+
+
+# --------------------------------------
+# Spearman AI critical
+# --------------------------------------
+
+def spearman_ai_critical():
+    data = pd.DataFrame({
+        'eval': [score.answer.ai_critical for score in total_scoring_mean],
+        'score': [score.total() for score in total_scoring_mean]
+    })
+
+    # Convert ordinal categories to numeric
+    rating_map = {
+        '': 0,
+        'I ingen grad': 1,
+        'I liten grad': 1,
+        'I middels grad': 2,
+        'I stor grad': 3,
+        'I svært stor grad': 4
+    }
+    data['eval_num'] = data['eval'].map(rating_map)
+
+    # Calculate Spearman correlation
+    correlation, p_value = stats.spearmanr(
+        data['eval_num'],
+        data['score']
+    )
+    print(f"Spearman correlation: {correlation:.3f}")
+    print(f"P-value: {p_value:.4f}")
+
+
+info("Spearman - AI critical")
+spearman_ai_critical()

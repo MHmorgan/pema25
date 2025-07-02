@@ -117,6 +117,29 @@ class Answer:
         self._ideas = category.ideas
         return self
 
+    @property
+    def ai_knowledge_rated(self):
+        rating_map = {
+            'Ingen kunnskap': 0,
+            'Litt kunnskap': 1,
+            'Moderat kunnskap': 2,
+            'God kunnskap': 3,
+            'Svært god kunnskap': 4
+        }
+        return rating_map[self.ai_knowledge]
+
+    @property
+    def ai_critical_rated(self):
+        rating_map = {
+            '': 0,
+            'I ingen grad': 1,
+            'I liten grad': 1,
+            'I middels grad': 2,
+            'I stor grad': 3,
+            'I svært stor grad': 4
+        }
+        return rating_map[self.ai_critical]
+
 
 def categorize(answers: Iterable[Answer], categories: Categories) -> list[Answer]:
     """
