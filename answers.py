@@ -51,6 +51,10 @@ class Answer:
         # How much they use AI at work
         self.work_usage = row[83]
 
+        self.ai_use_exploration = row[86]
+        self.ai_use_videreutvikling = row[87]
+        self.ai_use_search = row[88]
+
         self.ai_time_saved = row[91]
         self.ai_quality = row[92]
         self.ai_critical = row[93]
@@ -139,6 +143,39 @@ class Answer:
             'I svært stor grad': 4
         }
         return rating_map[self.ai_critical]
+
+    @property
+    def work_usage_rated(self):
+        rating_map = {
+            '': 0,
+            'I ingen grad': 1,
+            'I liten grad': 1,
+            'I middels grad': 2,
+            'I stor grad': 3,
+            'I svært stor grad': 4
+        }
+        return rating_map[self.work_usage]
+
+    ai_use_rating_map = {
+        '': 0,
+        '1 - ingen grad': 1,
+        '2 - liten grad': 2,
+        '3 - middels grad': 3,
+        '4 - stor grad': 4,
+        '5 - Veldig stor grad': 5
+    }
+
+    @property
+    def ai_use_exploration_rated(self):
+        return self.ai_use_rating_map[self.ai_use_exploration]
+
+    @property
+    def ai_use_videreutvikling_rated(self):
+        return self.ai_use_rating_map[self.ai_use_videreutvikling]
+
+    @property
+    def ai_use_search_rated(self):
+        return self.ai_use_rating_map[self.ai_use_search]
 
 
 def categorize(answers: Iterable[Answer], categories: Categories) -> list[Answer]:

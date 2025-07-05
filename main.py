@@ -534,44 +534,44 @@ info("T-testing originality")
 ttest_originality()
 
 
-# --------------------------------------
-# Knowledge high/low
-# --------------------------------------
-
-def ttest_knowledge_highlow():
-    ai_scores = total_scoring_mean.with_ai()
-    ai_scores.sort(key=lambda s: s.total())
-    ai_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
-
-    middle = len(ai_scores) // 2
-    high = [score.total() for score in ai_scores[:middle]]
-    low = [score.total() for score in ai_scores[middle:]]
-    res = ttest(high, low)
-    wttest.writerow(['AI-kunnskap høy vs. lav', fmt_num4(res.pvalue)])
-
-
-info("T-testing knowledge high/low")
-ttest_knowledge_highlow()
-
-
-# --------------------------------------
-# Critical high/low
-# --------------------------------------
-
-def ttest_critical_highlow():
-    ai_scores = total_scoring_mean.with_ai()
-    ai_scores.sort(key=lambda s: s.total())
-    ai_scores.sort(key=lambda s: s.answer.ai_critical_rated)
-
-    middle = len(ai_scores) // 2
-    high = [score.total() for score in ai_scores[:middle]]
-    low = [score.total() for score in ai_scores[middle:]]
-    res = ttest(high, low)
-    wttest.writerow(['AI-kritisk høy vs. lav', fmt_num4(res.pvalue)])
-
-
-info("T-testing critical high/low")
-ttest_critical_highlow()
+# # --------------------------------------
+# # Knowledge high/low
+# # --------------------------------------
+#
+# def ttest_knowledge_highlow():
+#     ai_scores = total_scoring_mean.with_ai()
+#     ai_scores.sort(key=lambda s: s.total())
+#     ai_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
+#
+#     middle = len(ai_scores) // 2
+#     high = [score.total() for score in ai_scores[:middle]]
+#     low = [score.total() for score in ai_scores[middle:]]
+#     res = ttest(high, low)
+#     wttest.writerow(['AI-kunnskap høy vs. lav', fmt_num4(res.pvalue)])
+#
+#
+# info("T-testing knowledge high/low")
+# ttest_knowledge_highlow()
+#
+#
+# # --------------------------------------
+# # Critical high/low
+# # --------------------------------------
+#
+# def ttest_critical_highlow():
+#     ai_scores = total_scoring_mean.with_ai()
+#     ai_scores.sort(key=lambda s: s.total())
+#     ai_scores.sort(key=lambda s: s.answer.ai_critical_rated)
+#
+#     middle = len(ai_scores) // 2
+#     high = [score.total() for score in ai_scores[:middle]]
+#     low = [score.total() for score in ai_scores[middle:]]
+#     res = ttest(high, low)
+#     wttest.writerow(['AI-kritisk høy vs. lav', fmt_num4(res.pvalue)])
+#
+#
+# info("T-testing critical high/low")
+# ttest_critical_highlow()
 
 
 # --------------------------------------
@@ -624,6 +624,114 @@ def ttest_critical_highlow():
 
 info("T-testing critical high med/uten")
 ttest_critical_highlow()
+
+
+# --------------------------------------
+# Exploration high med/uten
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.ai_use_exploration_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.ai_use_exploration_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['AI-utforskning høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing exploration high med/uten")
+ttest_knowledge_highlow()
+
+
+# --------------------------------------
+# Videreutvikling high med/uten
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.ai_use_videreutvikling_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.ai_use_videreutvikling_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['AI-videreutvikling høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing videreutvikling high med/uten")
+ttest_knowledge_highlow()
+
+
+# --------------------------------------
+# Search high med/uten
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.ai_use_search_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.ai_use_search_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['AI-søk høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing search high med/uten")
+ttest_knowledge_highlow()
+
+
+# --------------------------------------
+# Work usage high med/uten
+# --------------------------------------
+
+def ttest_knowledge_highlow():
+    with_ai_scores = total_scoring_mean.with_ai()
+    with_ai_scores.sort(key=lambda s: s.total())
+    with_ai_scores.sort(key=lambda s: s.answer.work_usage_rated)
+    with_ai_scores = with_ai_scores[len(with_ai_scores) // 2:]
+
+    without_scores = total_scoring_mean.without_ai()
+    without_scores.sort(key=lambda s: s.total())
+    without_scores.sort(key=lambda s: s.answer.work_usage_rated)
+    without_scores = without_scores[len(without_scores) // 2:]
+
+    res = ttest(
+        [score.total() for score in with_ai_scores],
+        [score.total() for score in without_scores],
+    )
+    wttest.writerow(['Bruk på jobb høy, med vs. uten', fmt_num4(res.pvalue)])
+
+
+info("T-testing work usage high med/uten")
+ttest_knowledge_highlow()
+
+# usg = set(ans.work_usage for ans in scored_answers)
+# print('Work usage')
+# pprint(usg)
 
 
 # ------------------------------------------------------------------------------
