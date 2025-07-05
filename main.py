@@ -133,23 +133,6 @@ with open(outdir / 'mean-scoring-total.csv', 'w') as f:
         fout=f
     )
 
-# --------------------------------------
-# Self-evaluation
-# --------------------------------------
-
-info('Self-evaluation scoring')
-self_evals = Scoring(
-    ScoringEntry.from_answer(ans, ans.number)
-    for ans in scored_answers
-)
-
-with open(outdir / 'self-evaluation.csv', 'w') as f:
-    analysis.scoring_csv(
-        with_ai=self_evals.with_ai(),
-        without=self_evals.without_ai(),
-        fout=f
-    )
-
 # ------------------------------------------------------------------------------
 #
 # Category Count
@@ -177,56 +160,6 @@ analysis.bar_plot_compare_ai(
 # Plot the scoring per category, for different scorers.
 #
 # ------------------------------------------------------------------------------
-
-info('Originality distribution - authors')
-
-with_ai_original = {
-    category: author_scoring_mean.original_mean(answers)
-    for category, answers in categorized_with_ai_grouped.items()
-}
-
-without_original = {
-    category: author_scoring_mean.original_mean(answers)
-    for category, answers in categorized_without_grouped.items()
-}
-
-analysis.scatter_plot(
-    name='category-original-authors',
-    line_values=[
-        [with_ai_original.get(cat, None) for cat in category_names],
-        [without_original.get(cat, None) for cat in category_names],
-    ],
-    line_labels=['Med KI', 'Uten KI'],
-    title='Kategori, Originalitet: Med KI vs uten KI (forfattere)',
-    ylabel='Antall',
-    xlabel='Kategorier',
-    xticklabels=category_names,
-)
-
-info('Originality distribution - experts')
-
-with_ai_original = {
-    category: expert_scoring_mean.original_mean(answers)
-    for category, answers in categorized_with_ai_grouped.items()
-}
-
-without_original = {
-    category: expert_scoring_mean.original_mean(answers)
-    for category, answers in categorized_without_grouped.items()
-}
-
-analysis.scatter_plot(
-    name='category-original-expert',
-    line_values=[
-        [with_ai_original.get(cat, None) for cat in category_names],
-        [without_original.get(cat, None) for cat in category_names],
-    ],
-    line_labels=['Med KI', 'Uten KI'],
-    title='Kategory, Originalitet: Med KI vs uten KI (eksperter)',
-    ylabel='Antall',
-    xlabel='Kategorier',
-    xticklabels=category_names,
-)
 
 info('Originality distribution - totals')
 
@@ -533,47 +466,6 @@ def ttest_originality():
 info("T-testing originality")
 ttest_originality()
 
-
-# # --------------------------------------
-# # Knowledge high/low
-# # --------------------------------------
-#
-# def ttest_knowledge_highlow():
-#     ai_scores = total_scoring_mean.with_ai()
-#     ai_scores.sort(key=lambda s: s.total())
-#     ai_scores.sort(key=lambda s: s.answer.ai_knowledge_rated)
-#
-#     middle = len(ai_scores) // 2
-#     high = [score.total() for score in ai_scores[:middle]]
-#     low = [score.total() for score in ai_scores[middle:]]
-#     res = ttest(high, low)
-#     wttest.writerow(['AI-kunnskap høy vs. lav', fmt_num4(res.pvalue)])
-#
-#
-# info("T-testing knowledge high/low")
-# ttest_knowledge_highlow()
-#
-#
-# # --------------------------------------
-# # Critical high/low
-# # --------------------------------------
-#
-# def ttest_critical_highlow():
-#     ai_scores = total_scoring_mean.with_ai()
-#     ai_scores.sort(key=lambda s: s.total())
-#     ai_scores.sort(key=lambda s: s.answer.ai_critical_rated)
-#
-#     middle = len(ai_scores) // 2
-#     high = [score.total() for score in ai_scores[:middle]]
-#     low = [score.total() for score in ai_scores[middle:]]
-#     res = ttest(high, low)
-#     wttest.writerow(['AI-kritisk høy vs. lav', fmt_num4(res.pvalue)])
-#
-#
-# info("T-testing critical high/low")
-# ttest_critical_highlow()
-
-
 # --------------------------------------
 # Knowledge high med/uten
 # --------------------------------------
@@ -728,80 +620,3 @@ def ttest_knowledge_highlow():
 
 info("T-testing work usage high med/uten")
 ttest_knowledge_highlow()
-
-# usg = set(ans.work_usage for ans in scored_answers)
-# print('Work usage')
-# pprint(usg)
-
-
-# ------------------------------------------------------------------------------
-#
-# Spearman Tests
-#
-# ------------------------------------------------------------------------------
-
-# --------------------------------------
-# Spearman AI knowledge
-# --------------------------------------
-
-def spearman_ai_knowledge():
-    data = pd.DataFrame({
-        'knowledge': [score.answer.ai_knowledge for score in total_scoring_mean],
-        'score': [score.total() for score in total_scoring_mean]
-    })
-
-    # Convert ordinal categories to numeric
-    rating_map = {
-        'Ingen kunnskap': 0,
-        'Litt kunnskap': 1,
-        'Moderat kunnskap': 2,
-        'God kunnskap': 3,
-        'Svært god kunnskap': 4
-    }
-    data['knowledge_num'] = data['knowledge'].map(rating_map)
-
-    # Calculate Spearman correlation
-    correlation, p_value = stats.spearmanr(
-        data['knowledge_num'],
-        data['score']
-    )
-    print(f"Spearman correlation: {correlation:.3f}")
-    print(f"P-value: {p_value:.4f}")
-
-
-info("Spearman - AI knowledge")
-spearman_ai_knowledge()
-
-
-# --------------------------------------
-# Spearman AI critical
-# --------------------------------------
-
-def spearman_ai_critical():
-    data = pd.DataFrame({
-        'eval': [score.answer.ai_critical for score in total_scoring_mean],
-        'score': [score.total() for score in total_scoring_mean]
-    })
-
-    # Convert ordinal categories to numeric
-    rating_map = {
-        '': 0,
-        'I ingen grad': 1,
-        'I liten grad': 1,
-        'I middels grad': 2,
-        'I stor grad': 3,
-        'I svært stor grad': 4
-    }
-    data['eval_num'] = data['eval'].map(rating_map)
-
-    # Calculate Spearman correlation
-    correlation, p_value = stats.spearmanr(
-        data['eval_num'],
-        data['score']
-    )
-    print(f"Spearman correlation: {correlation:.3f}")
-    print(f"P-value: {p_value:.4f}")
-
-
-info("Spearman - AI critical")
-spearman_ai_critical()
